@@ -111,6 +111,7 @@ function Get-EfiVariableValue {
     if($size -eq 0){
         $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
         Write-Warning "Read failed, Win32 error $err"
+        return "<failed to read>"
     }
 
     $data = $buf[0..($size-1)] | ForEach-Object { "{0:X2}" -f $_ }
