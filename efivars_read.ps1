@@ -3,10 +3,7 @@ param(
     [string]$Guid,
 
     [Parameter(Mandatory=$true, Position=1)]
-    [string]$Name,
-
-    [Parameter(Mandatory=$true, Position=2)]
-    [string]$Value
+    [string]$Name
 )
 
 # ------------ EFI vars writing api unlock
@@ -81,44 +78,32 @@ using System;
 using System.Runtime.InteropServices;
 
 public class EFI {
-    [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
-    public static extern bool SetFirmwareEnvironmentVariable(
-        string lpName,
-        string lpGuid,
-        byte[] pValue,
-        uint nSize
-    );
+  [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
+  public static extern uint GetFirmwareEnvironmentVariableEx(
+    string name,
+    string guid,
+    byte[] buffer,
+    uint size,
+    out uint attributes
+  );
 }
 "@
 
-function Set-EFIVar {
-    param(
-        [string]$Name,
-        [string]$Guid,
-        [byte[]]$Value
-    )
+$buf = New-Object byte[] 4096
+$attr = 0
 
-    Write-Host "Attempt to write an EFI-variable: $Guid ($Name) = $([string]::Join(',', $Value))"
-    
-    $result = [EFI]::SetFirmwareEnvironmentVariable($Name, $Guid, $Value, $Value.Length)
+$size = [EFI]::GetFirmwareEnvironmentVariableEx($Name, $Guid, $buf, 4096, [ref]$attr)
 
-    if ($result) {
-        Write-Host "EFI-variable writed successfully"
-        return $true
-    } else {
-        $err = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
-        Write-Warning "Failed to set EFI-variable: $err"
-        return $false
-    }
+if($size -eq 0){
+    $err = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+    Write-Warning "Read failed, Win32 error $err"
+    exit
 }
 
-try {
-    $bytes = $Value -split ',' | ForEach-Object {
-        $_.Trim() -replace '^0x','' | ForEach-Object { [Convert]::ToByte($_,16) }
-    }
-} catch {
-    Write-Error "Invalid value format. usage 0x00,0x01,..."
-    exit 1
-}
+$data = $buf[0..($size-1)] | ForEach-Object { "{0:X2}" -f $_ }
 
-Set-EFIVar -Name $Name -Guid $Guid -Value $bytes
+Write-Host "GUID : $Guid"
+Write-Host "Name : $Name"
+Write-Host "Size : $size"
+Write-Host "Attr : 0x$('{0:X8}' -f $attr)"
+Write-Host "Data : $($data -join ' ')"
