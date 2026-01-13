@@ -3,11 +3,6 @@
 * scripts must be run in the console running as an administrator
 
 ## usage:
-* demonstrates the ability to write EFI-variable from the script itself. it works automatically and specifically in this example sets the Timeout to 0
-```powershell
-powershell -ExecutionPolicy Bypass -File "efivars_auto_write.ps1"
-```
-
 * demonstrates the ability to write arbitrary variables to EFI-variables
 ```powershell
 powershell -ExecutionPolicy Bypass -File "efivars_write.ps1" -Guid "{8BE4DF61-93CA-11D2-AA0D-00E098032B8C}" -Name Timeout -Value "0x00,0x00"
@@ -16,6 +11,11 @@ powershell -ExecutionPolicy Bypass -File "efivars_write.ps1" -Guid "{8BE4DF61-93
 * reading efivar
 ```powershell
 powershell -ExecutionPolicy Bypass -File "efivars_read.ps1" -Guid "{8BE4DF61-93CA-11D2-AA0D-00E098032B8C}" -Name Timeout
+```
+
+* demonstrates the ability to write EFI-variable from the script itself. it works automatically and specifically in this example sets the Timeout to 0
+```powershell
+powershell -ExecutionPolicy Bypass -File "efivars_auto_write.ps1"
 ```
 
 ## GUIDs:
