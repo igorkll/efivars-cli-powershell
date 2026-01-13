@@ -1,3 +1,14 @@
+param(
+    [Parameter(Mandatory=$true, Position=0)]
+    [string]$Name,
+
+    [Parameter(Mandatory=$true, Position=1)]
+    [string]$Guid,
+
+    [Parameter(Mandatory=$true, Position=2)]
+    [string]$Value
+)
+
 # ------------ EFI vars writing api unlock
 Add-Type @"
 using System;
@@ -57,9 +68,11 @@ public class AdjPriv
 }
 "@
 if (-not [AdjPriv]::EnablePrivilege("SeSystemEnvironmentPrivilege")) {
-    Write-Host "The SeSystemEnvironmentPrivilege privilege could not be enabled"
+    Write-Warning "The SeSystemEnvironmentPrivilege privilege could not be enabled"
     exit
 }
+
+Write-Host "SeSystemEnvironmentPrivilege privilege successfully obtained"
 
 # ------------ EFI vars writing
 
@@ -78,14 +91,34 @@ public class EFI {
 }
 "@
 
-$name = "Timeout"
-$guid = "{8BE4DF61-93CA-11D2-AA0D-00E098032B8C}"
-$value = [byte[]](0x00, 0x00)
+function Set-EFIVar {
+    param(
+        [string]$Name,
+        [string]$Guid,
+        [byte[]]$Value
+    )
 
-$result = [EFI]::SetFirmwareEnvironmentVariable($name, $guid, $value, $value.Length)
-if ($result) {
-    Write-Host "OK"
-} else {
-    $err = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
-    Write-Host "ERR: $err"
+    Write-Host "Attempt to write an EFI-variable: $Guid ($Name) = $([string]::Join(',', $Value))"
+    
+    $result = [EFI]::SetFirmwareEnvironmentVariable($Name, $Guid, $Value, $Value.Length)
+
+    if ($result) {
+        Write-Host "EFI-variable writed successfully"
+        return $true
+    } else {
+        $err = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        Write-Warning "Failed to set EFI-variable: $err"
+        return $false
+    }
 }
+
+try {
+    $bytes = $Value -split ',' | ForEach-Object {
+        $_.Trim() -replace '^0x','' | ForEach-Object { [Convert]::ToByte($_,16) }
+    }
+} catch {
+    Write-Error "Invalid value format. usage 0x00,0x01,..."
+    exit 1
+}
+
+Set-EFIVar -Name $Name -Guid $Guid -Value $bytes
