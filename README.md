@@ -8,6 +8,11 @@
 powershell -ExecutionPolicy Bypass -File "efivars_list.ps1"
 ```
 
+* show all EFI-variables with values
+```powershell
+powershell -ExecutionPolicy Bypass -File "efivars_list_values.ps1"
+```
+
 * demonstrates the ability to write arbitrary variables to EFI-variables
 ```powershell
 powershell -ExecutionPolicy Bypass -File "efivars_write.ps1" -Guid "{8BE4DF61-93CA-11D2-AA0D-00E098032B8C}" -Name Timeout -Value "0x00,0x00"
