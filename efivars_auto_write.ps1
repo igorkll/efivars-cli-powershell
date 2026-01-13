@@ -57,9 +57,11 @@ public class AdjPriv
 }
 "@
 if (-not [AdjPriv]::EnablePrivilege("SeSystemEnvironmentPrivilege")) {
-    Write-Host "The SeSystemEnvironmentPrivilege privilege could not be enabled"
+    Write-Warning "The SeSystemEnvironmentPrivilege privilege could not be enabled"
     exit
 }
+
+Write-Host "SeSystemEnvironmentPrivilege privilege successfully obtained"
 
 # ------------ EFI vars writing
 
