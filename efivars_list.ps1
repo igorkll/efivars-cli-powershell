@@ -78,38 +78,57 @@ public class Ntdll {
 }
 "@
 
-$INFO_CLASS = 1
-$size = 1024 * 1024
-$result = New-Object Byte[]($size)
-$rc = [Ntdll]::NtEnumerateSystemEnvironmentValuesEx($INFO_CLASS, $result, [ref] $size)
-$lastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-if ($rc -eq 0)
-{
-    $currentPos = 0
-    while ($true)
-    {
-        # Get the offset to the next entry
-        $nextOffset = [System.BitConverter]::ToUInt32($result, $currentPos)
-        if ($nextOffset -eq 0)
-        {
-            break
-        }
+$INFO_CLASS = 1 #efi vars
 
-        # Get the vendor GUID for the current entry
-        $guidBytes = $result[($currentPos + 4)..($currentPos + 4 + 15)]
-        [Guid] $vendor = [Byte[]]$guidBytes
-        
-        # Get the name of the current entry
-        $name = [System.Text.Encoding]::Unicode.GetString($result[($currentPos + 20)..($currentPos + $nextOffset - 1)])
+$size = 0
+$status = [Ntdll]::NtEnumerateSystemEnvironmentValuesEx($INFO_CLASS, [IntPtr]::Zero, [ref]$size)
+$buf = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($size)
 
-        # Return a new object to the pipeline
-        New-Object PSObject -Property @{Namespace = $vendor.ToString('B'); VariableName = $name.Replace("`0","") }
-
-        # Advance to the next entry
-        $currentPos = $currentPos + $nextOffset
-    }
+$status = [Ntdll]::NtEnumerateSystemEnvironmentValuesEx($INFO_CLASS, $buf, [ref]$size)
+if ($status -ne 0) {
+    Write-Warning "NtEnumerateSystemEnvironmentValuesEx failed NTSTATUS=0x{0:X8}" -f $status
+    exit
 }
-else
+
+$result = New-Object byte[] $size
+[Runtime.InteropServices.Marshal]::Copy($buf, $result, 0, $size)
+
+$currentPos = 0
+$prevGuid = $null
+$varsForGuid = @()
+
+while ($true)
 {
-    Write-Error "Unable to retrieve list of UEFI variables, last error = $lastError."
+    # Считываем смещение к следующей записи
+    $nextOffset = [System.BitConverter]::ToUInt32($result, $currentPos)
+    if ($nextOffset -eq 0) { break }
+
+    # Считываем GUID (16 байт начиная с offset +4)
+    $guidBytes = $result[($currentPos + 4)..($currentPos + 19)]
+    $vendorGuid = $guidBytes
+
+    # Считываем имя (UTF-16)
+    $nameLength = $nextOffset - 20  # 20 байт: 4 + 16
+    $nameBytes = $result[($currentPos + 20)..($currentPos + 20 + $nameLength - 1)]
+    $name = [System.Text.Encoding]::Unicode.GetString($nameBytes).TrimEnd([char]0)
+
+    # Если GUID поменялся, выводим предыдущий блок
+    if ($prevGuid -ne $null -and $prevGuid -ne $vendorGuid) {
+        Write-Host "GUID: $prevGuid"
+        foreach ($v in $varsForGuid) { Write-Host "  $v" }
+        $varsForGuid = @()
+    }
+
+    # Добавляем переменную в текущий блок
+    $varsForGuid += $name
+    $prevGuid = $vendorGuid
+
+    # Переходим к следующей записи
+    $currentPos += $nextOffset
+}
+
+# Выводим последний блок
+if ($prevGuid -ne $null) {
+    Write-Host "GUID: $prevGuid"
+    foreach ($v in $varsForGuid) { Write-Host "  $v" }
 }
