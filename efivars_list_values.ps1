@@ -156,22 +156,22 @@ while ($true) {
     if ($prevGuid -ne $null -and $prevGuid.ToString() -ne $vendorGuid.ToString()) {
         Write-Host "GUID: $prevGuid"
         foreach ($v in $varsForGuid) {
-            $value = Get-EfiVariableValue -Guid $vendorGuid.ToString() -Name $v
+            $value = Get-EfiVariableValue -Guid $prevGuid.ToString() -Name $v
             Write-Host "  $v : $value"
         }
         Write-Host ""
         $varsForGuid = @()
     }
 
-    $varsForGuid += $name
     $prevGuid = $vendorGuid
+    $varsForGuid += $name
     $currentPos += $nextOffset
 }
 
 if ($prevGuid -ne $null) {
     Write-Host "GUID: $prevGuid"
     foreach ($v in $varsForGuid) {
-        $value = Get-EfiVariableValue -Guid $vendorGuid.ToString() -Name $v
+        $value = Get-EfiVariableValue -Guid $prevGuid.ToString() -Name $v
         Write-Host "  $v : $value"
     }
     Write-Host ""

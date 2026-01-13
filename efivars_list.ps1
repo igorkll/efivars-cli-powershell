@@ -120,8 +120,8 @@ while ($true) {
         $varsForGuid = @()
     }
 
-    $varsForGuid += $name
     $prevGuid = $vendorGuid
+    $varsForGuid += $name
     $currentPos += $nextOffset
 }
 
