@@ -6,7 +6,7 @@ param(
     [string]$Name
 )
 
-# ------------ EFI vars writing api unlock
+# ------------ EFI vars api unlock
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
