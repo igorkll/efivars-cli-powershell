@@ -85,10 +85,11 @@ function Set-EFIVar {
         [byte[]]$Value
     )
 
-    Write "Attempt to write an EFI-variable: [$Guid] ($Name) = $Value"
+    Write-Host "Attempt to write an EFI-variable: $Guid ($Name) = $Value"
     $result = [EFI]::SetFirmwareEnvironmentVariable($Name, $Guid, $Value, $Value.Length)
 
     if ($result) {
+        Write-Host "EFI-variable writed successfully"
         return $true
     } else {
         $err = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
