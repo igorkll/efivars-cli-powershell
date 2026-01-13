@@ -97,38 +97,36 @@ $currentPos = 0
 $prevGuid = $null
 $varsForGuid = @()
 
-while ($true)
-{
-    # Считываем смещение к следующей записи
+while ($true) {
     $nextOffset = [System.BitConverter]::ToUInt32($result, $currentPos)
     if ($nextOffset -eq 0) { break }
 
-    # Считываем GUID (16 байт начиная с offset +4)
     $guidBytes = $result[($currentPos + 4)..($currentPos + 19)]
-    $vendorGuid = $guidBytes
+    $vendorGuid = [System.Guid]::New(
+        [System.BitConverter]::ToInt32($guidBytes,0),
+        [System.BitConverter]::ToInt16($guidBytes,4),
+        [System.BitConverter]::ToInt16($guidBytes,6),
+        $guidBytes[8..15]
+    )
 
-    # Считываем имя (UTF-16)
-    $nameLength = $nextOffset - 20  # 20 байт: 4 + 16
+    $nameLength = $nextOffset - 20
     $nameBytes = $result[($currentPos + 20)..($currentPos + 20 + $nameLength - 1)]
     $name = [System.Text.Encoding]::Unicode.GetString($nameBytes).TrimEnd([char]0)
 
-    # Если GUID поменялся, выводим предыдущий блок
-    if ($prevGuid -ne $null -and $prevGuid -ne $vendorGuid) {
+    if ($prevGuid -ne $null -and $prevGuid.ToString() -ne $vendorGuid.ToString()) {
         Write-Host "GUID: $prevGuid"
         foreach ($v in $varsForGuid) { Write-Host "  $v" }
+        Write-Host ""
         $varsForGuid = @()
     }
 
-    # Добавляем переменную в текущий блок
     $varsForGuid += $name
     $prevGuid = $vendorGuid
-
-    # Переходим к следующей записи
     $currentPos += $nextOffset
 }
 
-# Выводим последний блок
 if ($prevGuid -ne $null) {
     Write-Host "GUID: $prevGuid"
     foreach ($v in $varsForGuid) { Write-Host "  $v" }
+    Write-Host ""
 }
