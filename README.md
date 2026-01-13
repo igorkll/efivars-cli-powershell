@@ -18,6 +18,16 @@ powershell -ExecutionPolicy Bypass -File "efivars_read.ps1" -Guid "{8BE4DF61-93C
 powershell -ExecutionPolicy Bypass -File "efivars_auto_write.ps1"
 ```
 
+* outputs efivars as a byte array
+```powershell
+powershell -ExecutionPolicy Bypass -File "efivars_list_raw.ps1"
+```
+
+* outputs efivars as a text representation of a byte array
+```powershell
+powershell -ExecutionPolicy Bypass -File "efivars_list_raw_text.ps1"
+```
+
 ## GUIDs:
 * EFI_GLOBAL_VARIABLE / EFI_SETUP_MODE / EFI_SECURE_BOOT_MODE - {8BE4DF61-93CA-11D2-AA0D-00E098032B8C} - Used for: Windows system variables like Timeout, BootOrder, BootNext, and other standard boot settings. Almost all the “Windows EFI variables" are here.
 * EFI_ACPI_VARIABLE - {591209C0-B3A8-4F3F-AB89-DF54D2244F20} - For ACPI variables, which the firmware uses for power and device configuration.
